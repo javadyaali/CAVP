@@ -22,6 +22,9 @@ import misc.utils as utils
 from misc.rewards import init_scorer, get_self_critical_reward
 
 
+# Make it compatible with CPU
+device = torch.device('cuda:0' if torch.cuda.is_avaliable() else 'cpu')
+
 def initialize_logger(output_file):
     formatter = logging.Formatter("<%(asctime)s.%(msecs)03d> %(message)s",
                                   "%m-%d %H:%M:%S")
@@ -68,7 +71,7 @@ def train(opt):
     else:
         best_val_score = None
 
-    model = models.setup(opt).cuda()
+    model = models.setup(opt).to(device)
     dp_model = torch.nn.DataParallel(model)
 
     update_lr_flag = True
@@ -111,11 +114,11 @@ def train(opt):
 
         # Load data from train split (0)
         batch_data = loader.get_batch('train')
-        torch.cuda.synchronize()
+        torch.cuda.synchronize(device)
 
         tmp = [batch_data['fc_feats'], batch_data['att_feats'], batch_data['labels'],
                batch_data['masks'], batch_data['att_masks']]
-        tmp = [_ if _ is None else torch.from_numpy(_).cuda() for _ in tmp]
+        tmp = [_ if _ is None else torch.from_numpy(_).to(device) for _ in tmp]
         fc_feats, att_feats, labels, masks, att_masks = tmp
 
         optimizer.zero_grad()
@@ -125,13 +128,13 @@ def train(opt):
         else:
             gen_result, sample_logprobs = dp_model(fc_feats, att_feats, att_masks, opt={'sample_max': 0}, mode='sample')
             reward = get_self_critical_reward(dp_model, fc_feats, att_feats, att_masks, batch_data, gen_result, opt)
-            loss = rl_crit(sample_logprobs, gen_result.data, torch.from_numpy(reward).float().cuda())
+            loss = rl_crit(sample_logprobs, gen_result.data, torch.from_numpy(reward).float().to(device))
 
         loss.backward()
         utils.clip_gradient(optimizer, opt.grad_clip)
         optimizer.step()
         train_loss = loss.data
-        torch.cuda.synchronize()
+        torch.cuda.synchronize(device)
 
         # Update the iteration and epoch
         iteration += 1
