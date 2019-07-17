@@ -19,6 +19,8 @@ import misc.utils as utils
 
 import time
 
+# Make it compatible with CPU
+device = torch.device('cuda:0' if torch.cuda.is_avaliable() else 'cpu')
 
 def parse_eval_opt():
     # Input arguments and options
@@ -103,7 +105,7 @@ def split_eval():
     model_file = 'model-best.pth' if opt.load_best else 'model.pth'
     model_path = os.path.join(opt.log_path, model_file)
     model.load_state_dict(torch.load(model_path))
-    model.cuda()
+    model.to(device)
     model.eval()
     crit = utils.LanguageModelCriterion()
 
