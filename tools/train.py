@@ -10,6 +10,7 @@ import logging
 import numpy as np
 
 import torch
+import torch.nn as nn
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(this_dir, '../'))
@@ -23,7 +24,7 @@ from misc.rewards import init_scorer, get_self_critical_reward
 
 
 # Make it compatible with CPU
-device = torch.device('cuda:0' if torch.cuda.is_avaliable() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 def initialize_logger(output_file):
     formatter = logging.Formatter("<%(asctime)s.%(msecs)03d> %(message)s",
